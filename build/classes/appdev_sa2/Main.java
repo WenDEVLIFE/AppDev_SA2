@@ -1,8 +1,20 @@
+package appdev_sa2;
+
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
-package appdev_sa2;
+
+
+import entities.Student;
+import java.util.ArrayList;
+import java.util.List;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 
 /**
  *
@@ -10,11 +22,59 @@ package appdev_sa2;
  */
 public class Main extends javax.swing.JFrame {
 
+    DefaultTableModel model;
+    List <Student> students = new ArrayList<>();
+    int studentId = 0;
     /**
      * Creates new form Main
      */
     public Main() {
         initComponents();
+        String [] columnNames = {"Student ID", "Student Name", "Gender","Year Level", "Email", "Program", "Phone"};
+        model = new DefaultTableModel(columnNames, 0);
+        studentTable.setModel(model);
+        loadStudents();
+
+        studentTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && studentTable.getSelectedRow() != -1) {
+                int selectedRow = studentTable.getSelectedRow();
+                studentId = (int) model.getValueAt(selectedRow, 0);
+                studentField.setText((String) model.getValueAt(selectedRow, 1));
+                yearField.setText((String) model.getValueAt(selectedRow, 3));
+                emailField.setText((String) model.getValueAt(selectedRow, 4));
+                programField.setText((String) model.getValueAt(selectedRow, 5));
+                genderField.setText((String) model.getValueAt(selectedRow, 2));
+                phoneField.setText((String) model.getValueAt(selectedRow, 6));
+            }
+        });
+    }
+
+    void loadStudents() {
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("myJpaUnit");
+        EntityManager em = emf.createEntityManager();
+        try {
+            em.getTransaction().begin();
+            students = em.createQuery("SELECT s FROM Student s", Student.class).getResultList();
+            model.setRowCount(0); // Clear existing rows
+            for (Student student : students) {
+                model.addRow(new Object[]{
+                        student.getId(),
+                        student.getStudentName(),
+                        student.getGender(),
+                        student.getYearLevel(),
+                        student.getEmail(),
+                        student.getProgram(),
+                        student.getPhone()
+                });
+            }
+            Count.setText(String.valueOf(students.size()));
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Error loading students: " + e.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        } finally {
+            em.close();
+            emf.close();
+        }
     }
 
     /**
@@ -407,20 +467,144 @@ public class Main extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    // This will add the user to the database
     private void AddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_AddActionPerformed
-        // TODO add your handling code here:
+
+        String  studentName = studentField.getText();
+        String yearLevel = yearField.getText();
+        String email = emailField.getText();
+        String program = programField.getText();
+        String phone = phoneField.getText();
+        String gender = genderField.getText();
+
+        if (studentName.isEmpty() || yearLevel.isEmpty() || email.isEmpty() || program.isEmpty() || phone.isEmpty() || gender.isEmpty()){
+            javax.swing.JOptionPane.showMessageDialog(this, "Please fill in all fields", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("myJpaUnit");
+        EntityManager em = emf.createEntityManager();
+
+        try {
+            em.getTransaction().begin();
+            Student student = new Student(studentName, yearLevel, email, program, gender, phone);
+            em.persist(student);
+            em.getTransaction().commit();
+            javax.swing.JOptionPane.showMessageDialog(this, "Student added successfully!");
+            loadStudents();
+        } catch (Exception ex) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Error adding student: " + ex.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        } finally {
+            em.close();
+            emf.close();
+        }
+
     }//GEN-LAST:event_AddActionPerformed
 
     private void DeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DeleteActionPerformed
-        // TODO add your handling code here:
+
+         int selectedRow = studentTable.getSelectedRow();
+
+        if (selectedRow == -1) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Please select a student to delete", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int studentId = (int) model.getValueAt(selectedRow, 0);
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("myJpaUnit");
+        EntityManager em = emf.createEntityManager();
+        try {
+            em.getTransaction().begin();
+            Student student = em.find(Student.class, studentId);
+            if (student != null) {
+                em.remove(student);
+                em.getTransaction().commit();
+                javax.swing.JOptionPane.showMessageDialog(this, "Student deleted successfully!");
+                loadStudents();
+            } else {
+                javax.swing.JOptionPane.showMessageDialog(this, "Student not found", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception ex) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Error deleting student: " + ex.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        } finally {
+            em.close();
+            emf.close();
+        }
     }//GEN-LAST:event_DeleteActionPerformed
 
     private void UpdateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_UpdateActionPerformed
-        // TODO add your handling code here:
+
+        int selectedRow = studentTable.getSelectedRow();
+
+        if (selectedRow == -1) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Please select a student to update", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (studentField.getText().isEmpty() || yearField.getText().isEmpty() || emailField.getText().isEmpty() || programField.getText().isEmpty() || phoneField.getText().isEmpty() || genderField.getText().isEmpty()) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Please fill in all fields", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if(studentId == 0) {
+            javax.swing.JOptionPane.showMessageDialog(this, "No student selected for update", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String studentName = studentField.getText();
+        String yearLevel = yearField.getText();
+        String email = emailField.getText();
+        String program = programField.getText();
+        String phone = phoneField.getText();
+        String gender = genderField.getText();
+
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("myJpaUnit");
+        EntityManager em = emf.createEntityManager();
+        try {
+            em.getTransaction().begin();
+            Student student = em.find(Student.class, studentId);
+            if (student != null) {
+                student.setStudentName(studentName);
+                student.setYearLevel(yearLevel);
+                student.setEmail(email);
+                student.setProgram(program);
+                student.setPhone(phone);
+                student.setGender(gender);
+                em.merge(student);
+                em.getTransaction().commit();
+                javax.swing.JOptionPane.showMessageDialog(this, "Student updated successfully!");
+                loadStudents();
+            } else {
+                javax.swing.JOptionPane.showMessageDialog(this, "Student not found", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception ex) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Error updating student: " + ex.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        } finally {
+            em.close();
+            emf.close();
+        }
+
     }//GEN-LAST:event_UpdateActionPerformed
 
+    // This is for the search function or filter
     private void Add1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Add1ActionPerformed
-        // TODO add your handling code here:
+
+        String searchId = searchIdField.getText().trim();
+
+        TableRowSorter <DefaultTableModel> sorter = new TableRowSorter<>(model);
+        studentTable.setRowSorter(sorter);
+        if (searchId.isEmpty()) {
+            sorter.setRowFilter(null); // Show all rows if search field is empty
+            loadStudents();
+            JOptionPane.showMessageDialog(this, "Please enter an ID to search", "Info", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            try {
+                int id = Integer.parseInt(searchId);
+                sorter.setRowFilter(javax.swing.RowFilter.numberFilter(javax.swing.RowFilter.ComparisonType.EQUAL, id, 0));
+            } catch (NumberFormatException e) {
+                javax.swing.JOptionPane.showMessageDialog(this, "Invalid ID format", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }//GEN-LAST:event_Add1ActionPerformed
 
     private void CountActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CountActionPerformed
@@ -461,6 +645,8 @@ public class Main extends javax.swing.JFrame {
             }
         });
     }
+
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton Add;
