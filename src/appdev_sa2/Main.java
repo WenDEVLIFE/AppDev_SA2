@@ -1,8 +1,15 @@
+package appdev_sa2;
+
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
-package appdev_sa2;
+
+
+import entities.Student;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 /**
  *
@@ -407,8 +414,37 @@ public class Main extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    // This will add the user to the database
     private void AddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_AddActionPerformed
-        // TODO add your handling code here:
+
+        String  studentName = studentField.getText();
+        String yearLevel = yearField.getText();
+        String email = emailField.getText();
+        String program = programField.getText();
+        String phone = phoneField.getText();
+        String gender = genderField.getText();
+
+        if (studentName.isEmpty() || yearLevel.isEmpty() || email.isEmpty() || program.isEmpty() || phone.isEmpty() || gender.isEmpty()){
+            javax.swing.JOptionPane.showMessageDialog(this, "Please fill in all fields", "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("myJpaUnit");
+        EntityManager em = emf.createEntityManager();
+
+        try {
+            em.getTransaction().begin();
+            Student student = new Student(studentName, yearLevel, email, program, gender, phone);
+            em.persist(student);
+            em.getTransaction().commit();
+            javax.swing.JOptionPane.showMessageDialog(this, "Student added successfully!");
+        } catch (Exception ex) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Error adding student: " + ex.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        } finally {
+            em.close();
+            emf.close();
+        }
+
     }//GEN-LAST:event_AddActionPerformed
 
     private void DeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DeleteActionPerformed
