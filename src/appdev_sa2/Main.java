@@ -7,9 +7,12 @@ package appdev_sa2;
 
 
 import entities.Student;
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
@@ -17,11 +20,45 @@ import javax.persistence.Persistence;
  */
 public class Main extends javax.swing.JFrame {
 
+    DefaultTableModel model;
+    List <Student> students = new ArrayList<>();
     /**
      * Creates new form Main
      */
     public Main() {
         initComponents();
+        String [] columnNames = {"Student ID", "Student Name", "Gender","Year Level", "Email", "Program", "Phone"};
+        model = new DefaultTableModel(columnNames, 0);
+        studentTable.setModel(model);
+        loadStudents();
+    }
+
+    void loadStudents() {
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("myJpaUnit");
+        EntityManager em = emf.createEntityManager();
+        try {
+            em.getTransaction().begin();
+            students = em.createQuery("SELECT s FROM Student s", Student.class).getResultList();
+            model.setRowCount(0); // Clear existing rows
+            for (Student student : students) {
+                model.addRow(new Object[]{
+                        student.getId(),
+                        student.getStudentName(),
+                        student.getGender(),
+                        student.getYearLevel(),
+                        student.getEmail(),
+                        student.getProgram(),
+                        student.getPhone()
+                });
+            }
+            Count.setText(String.valueOf(students.size()));
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Error loading students: " + e.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        } finally {
+            em.close();
+            emf.close();
+        }
     }
 
     /**
@@ -497,6 +534,8 @@ public class Main extends javax.swing.JFrame {
             }
         });
     }
+
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton Add;
